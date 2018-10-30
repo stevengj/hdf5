@@ -30,7 +30,7 @@ dnl fortran compilers for use with AC_PROG_FC that is more suitable for HPC
 dnl software packages
 AC_DEFUN([PAC_FC_SEARCH_LIST],
          [gfortran ifort pgf90 pathf90 pathf95 xlf90 xlf95 xlf2003 f90 epcf90 f95 fort lf95 g95 ifc efc gfc])
-dnl 
+dnl
 dnl PAC_PROG_FC([COMPILERS])
 dnl
 dnl COMPILERS is a space separated list of Fortran compilers to search for.
@@ -54,10 +54,10 @@ dnl ifc - An older Intel compiler
 dnl fc  - A compiler on some unknown system.  This has been removed because
 dnl       it may also be the name of a command for something other than
 dnl       the Fortran compiler (e.g., fc=file system check!)
-dnl gfortran - The GNU Fortran compiler (not the same as g95) 
+dnl gfortran - The GNU Fortran compiler (not the same as g95)
 dnl gfc - An alias for gfortran recommended in cygwin installations
 dnl NOTE: this macro suffers from a basically intractable "expanded before it
-dnl was required" problem when libtool is also used 
+dnl was required" problem when libtool is also used
 dnl [1] MPICH.org
 dnl
 
@@ -66,7 +66,7 @@ dnl See if the fortran compiler supports the intrinsic module "ISO_FORTRAN_ENV"
 AC_DEFUN([PAC_PROG_FC_ISO_FORTRAN_ENV],[
   HAVE_ISO_FORTRAN_ENV="no"
   AC_MSG_CHECKING([if Fortran compiler supports intrinsic module ISO_FORTRAN_ENV])
-  TEST_SRC="`sed -n '/PROGRAM PROG_FC_ISO_FORTRAN_ENV/,/END PROGRAM PROG_FC_ISO_FORTRAN_ENV/p' $srcdir/m4/aclocal_fc.f90`"	
+  TEST_SRC="`sed -n '/PROGRAM PROG_FC_ISO_FORTRAN_ENV/,/END PROGRAM PROG_FC_ISO_FORTRAN_ENV/p' $srcdir/m4/aclocal_fc.f90`"
   AC_LINK_IFELSE([$TEST_SRC],[AC_MSG_RESULT([yes])
      	HAVE_ISO_FORTRAN_ENV="yes"],
       [AC_MSG_RESULT([no])])
@@ -122,11 +122,11 @@ dnl Check if C_LONG_DOUBLE is different from C_DOUBLE
 
 if  test "X$FORTRAN_HAVE_C_LONG_DOUBLE" = "Xyes"; then
 AC_DEFUN([PAC_PROG_FC_C_LONG_DOUBLE_EQ_C_DOUBLE],[
-  C_LONG_DOUBLE_IS_UNIQUE_FORTRAN="no"	
+  C_LONG_DOUBLE_IS_UNIQUE_FORTRAN="no"
   AC_MSG_CHECKING([if Fortran C_LONG_DOUBLE is different from C_DOUBLE])
   TEST_SRC="`sed -n '/MODULE type_mod/,/END PROGRAM PROG_FC_C_LONG_DOUBLE_EQ_C_DOUBLE/p' $srcdir/m4/aclocal_fc.f90`"
-  AC_COMPILE_IFELSE([$TEST_SRC], [AC_MSG_RESULT([yes]) 
-            C_LONG_DOUBLE_IS_UNIQUE_FORTRAN="yes"], 
+  AC_COMPILE_IFELSE([$TEST_SRC], [AC_MSG_RESULT([yes])
+            C_LONG_DOUBLE_IS_UNIQUE_FORTRAN="yes"],
          [AC_MSG_RESULT([no])])
 ])
 fi
@@ -138,8 +138,8 @@ AC_DEFUN([PAC_PROG_FC_HAVE_F2003_REQUIREMENTS],[
    HAVE_F2003_REQUIREMENTS="no"
    AC_MSG_CHECKING([if Fortran compiler version compatible with Fortran 2003 HDF])
    TEST_SRC="`sed -n '/PROG_FC_HAVE_F2003_REQUIREMENTS/,/END PROGRAM PROG_FC_HAVE_F2003_REQUIREMENTS/p' $srcdir/m4/aclocal_fc.f90`"
-   AC_COMPILE_IFELSE([$TEST_SRC], [AC_MSG_RESULT([yes]) 
-            HAVE_F2003_REQUIREMENTS="yes"], 
+   AC_COMPILE_IFELSE([$TEST_SRC], [AC_MSG_RESULT([yes])
+            HAVE_F2003_REQUIREMENTS="yes"],
          [AC_MSG_RESULT([no])])
 ])
 
@@ -262,7 +262,7 @@ TEST_SRC="`sed -n '/PROGRAM FC_AVAIL_KINDS/,/END PROGRAM FC_AVAIL_KINDS/p' $srcd
 AC_RUN_IFELSE([$TEST_SRC],
  [
     if test -s pac_fconftest.out ; then
-	
+
      dnl The output from the above program will be:
      dnl    -- LINE 1 --  valid integer kinds (comma seperated list)
      dnl    -- LINE 2 --  valid real kinds (comma seperated list)
@@ -434,45 +434,22 @@ AC_LANG_POP([Fortran])
 
 AC_DEFUN([PAC_FC_LDBL_DIG],[
 AC_MSG_CHECKING([maximum decimal precision for C])
-rm -f pac_Cconftest.out
-  AC_LANG_CONFTEST([
-      AC_LANG_PROGRAM([
-                #include <float.h>
-                #include <stdio.h>
-                #define CHECK_FLOAT128 $ac_cv_sizeof___float128
-                #if CHECK_FLOAT128!=0
-                # if $HAVE_QUADMATH!=0
-                #include <quadmath.h>
-                # endif
-                # ifdef FLT128_DIG
-                #define C_FLT128_DIG FLT128_DIG
-                # else
+AC_COMPUTE_INT(LDBL_DIG, [__STDC_VERSION__ >= 199901L ? DECIMAL_DIG : LDBL_DIG],
+               [#include <float.h>
+                #if $ac_cv_sizeof___float128 && $HAVE_QUADMATH
+                #  include <quadmath.h>
+                #endif], [AC_MSG_ERROR([C program fails to build or run!])])
+AC_COMPUTE_INT(FLT128_DIG, [C_FLT128_DIG],
+               [#include <float.h>
                 #define C_FLT128_DIG 0
-                # endif
-                #else
-                #define C_FLT128_DIG 0
-                #endif
-                #if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-                #define C_LDBL_DIG DECIMAL_DIG 
-                #else
-                #define C_LDBL_DIG LDBL_DIG
-                #endif
-                ],[[
-                  FILE * pFile;
-                  pFile = fopen("pac_Cconftest.out","w");
-                  fprintf(pFile, "%d\n%d\n", C_LDBL_DIG, C_FLT128_DIG);
-                ]])
-        ])
-        AC_RUN_IFELSE([],[
-            if test -s pac_Cconftest.out ; then
-	        LDBL_DIG="`sed -n '1p' pac_Cconftest.out`" 
-	        FLT128_DIG="`sed -n '2p' pac_Cconftest.out`"
-            else
-                AC_MSG_ERROR([No output from C decimal precision program!])
-            fi
-            rm -f pac_Cconftest.out
-        ],[
-            AC_MSG_ERROR([C program fails to build or run!])
-        ],[])
+                #if $ac_cv_sizeof___float128 && $HAVE_QUADMATH
+                #  include <quadmath.h>
+                #  ifdef FLT128_DIG
+                #    undef C_FLT128_DIG
+                #    define C_FLT128_DIG FLT128_DIG
+                #  else
+                #  endif
+                #endif], [AC_MSG_ERROR([C program fails to build or run!])])
+AC_MSG_RESULT([$LDBL_DIG and $FLT128_DIG])
 ])
 
