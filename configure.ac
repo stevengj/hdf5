@@ -432,7 +432,6 @@ else
   PAC_C_MAX_REAL_PRECISION=$LDBL_DIG
 fi
 AC_DEFINE_UNQUOTED([PAC_C_MAX_REAL_PRECISION], $PAC_C_MAX_REAL_PRECISION, [Determine the maximum decimal precision in C])
-AC_MSG_RESULT([$PAC_C_MAX_REAL_PRECISION])
 
 ## ----------------------------------------------------------------------
 ## Check if they would like the Fortran interface compiled
@@ -2823,29 +2822,23 @@ esac
 ## The machine's conversion gets the correct value.  We define the macro and disable
 ## this kind of test until we figure out what algorithm they use.
 ##
-AC_MSG_CHECKING([if using special algorithm to convert long double to (unsigned) long values])
-
-## NOTE: Place all configure test programs into cmake's source file, then use a preprocessor directive
-## to select the proper test program. This is done by echoing the #define and cat'ing the cmake
-## source file. (HDFFV-9467)
-
-TEST_SRC="`(echo \"#define H5_LDOUBLE_TO_LONG_SPECIAL_TEST 1\"; cat $srcdir/config/cmake/ConversionTests.c)`"
-
-if test ${ac_cv_sizeof_long_double} = 0; then
-   hdf5_cv_ldouble_to_long_special=${hdf5_cv_ldouble_to_long_special=no}
-else
-   AC_CACHE_VAL([hdf5_cv_ldouble_to_long_special],
-        [AC_RUN_IFELSE(
-            [AC_LANG_SOURCE([$TEST_SRC])]
-    , [hdf5_cv_ldouble_to_long_special=yes], [hdf5_cv_ldouble_to_long_special=no],)])
-fi
+AC_CACHE_CHECK([if using special algorithm to convert long double to (unsigned) long values],
+               [hdf5_cv_ldouble_to_long_special], [
+  if test ${ac_cv_sizeof_long_double} != 16 -o ${ac_cv_sizeof_long} != 8 -o ${ac_cv_c_bigendian} != yes; then
+    hdf5_cv_ldouble_to_long_special=${hdf5_cv_ldouble_to_long_special=no}
+  else
+    # based on H5_LDOUBLE_TO_LONG_SPECIAL_TEST in config/cmake/ConversionTests.c
+    AC_COMPUTE_INT([hdf5_ldouble_to_long_special], [((long) *((long double *) "\x43\x51\xcc\xf3\x85\xeb\xc8\xa0\xbf\xcc\x2a\x3c\x3d\x85\x56\x20")) & 0xff == 0x7f])
+    if test "x$hdf5_ldouble_to_long_special" = x1; then
+      hdf5_cv_ldouble_to_long_special=yes
+    else
+      hdf5_cv_ldouble_to_long_special=no
+    fi
+  fi])
 
 if test ${hdf5_cv_ldouble_to_long_special} = "yes"; then
   AC_DEFINE([LDOUBLE_TO_LONG_SPECIAL], [1],
             [Define if your system converts long double to (unsigned) long values with special algorithm.])
-  AC_MSG_RESULT([yes])
-else
-  AC_MSG_RESULT([no])
 fi
 
 ## ----------------------------------------------------------------------
@@ -2856,25 +2849,23 @@ fi
 ## ..., 7fffff..., the compiler uses a unknown algorithm.  We define a
 ## macro and skip the test for now until we know about the algorithm.
 ##
-AC_MSG_CHECKING([if using special algorithm to convert (unsigned) long to long double values])
-
-TEST_SRC="`(echo \"#define H5_LONG_TO_LDOUBLE_SPECIAL_TEST 1\"; cat $srcdir/config/cmake/ConversionTests.c)`"
-
-if test ${ac_cv_sizeof_long_double} = 0; then
-   hdf5_cv_long_to_ldouble_special=${hdf5_cv_long_to_ldouble_special=no}
-else
-   AC_CACHE_VAL([hdf5_cv_long_to_ldouble_special],
-        [AC_RUN_IFELSE(
-            [AC_LANG_SOURCE([$TEST_SRC])]
-    , [hdf5_cv_long_to_ldouble_special=yes], [hdf5_cv_long_to_ldouble_special=no],)])
-fi
+AC_CACHE_CHECK([if using special algorithm to convert (unsigned) long to long double values],
+               [hdf5_cv_long_to_ldouble_special], [
+  if test ${ac_cv_sizeof_long_double} != 16 -o ${ac_cv_sizeof_long} != 8 -o ${ac_cv_c_bigendian} != yes; then
+    hdf5_cv_long_to_ldouble_special=${hdf5_cv_ldouble_to_long_special=no}
+  else
+    # based on H5_LONG_TO_LDOUBLE_SPECIAL_TEST in config/cmake/ConversionTests.c
+    AC_COMPUTE_INT([hdf5_long_to_ldouble_special], [((long double) 0x003fffffffffffffL) == 18014398509481983.0L])
+    if test "x$hdf5_long_to_ldouble_special" = x1; then
+      hdf5_cv_long_to_ldouble_special=yes
+    else
+      hdf5_cv_long_to_ldouble_special=no
+    fi
+  fi])
 
 if test ${hdf5_cv_long_to_ldouble_special} = "yes"; then
   AC_DEFINE([LONG_TO_LDOUBLE_SPECIAL], [1],
             [Define if your system can convert (unsigned) long to long double values with special algorithm.])
-  AC_MSG_RESULT([yes])
-else
-  AC_MSG_RESULT([no])
 fi
 
 ## ----------------------------------------------------------------------
@@ -2888,24 +2879,24 @@ fi
 ## 0x4351ccf385ebc8a0ffcc... will make the converted values wildly wrong.
 ## This test detects this wrong behavior and disable the test.
 ##
-AC_MSG_CHECKING([if correctly converting long double to (unsigned) long long values])
-
-TEST_SRC="`(echo \"#define H5_LDOUBLE_TO_LLONG_ACCURATE_TEST 1\"; cat $srcdir/config/cmake/ConversionTests.c)`"
-
-if test ${ac_cv_sizeof_long_double} = 0; then
-   hdf5_cv_ldouble_to_llong_accurate=${hdf5_cv_ldouble_to_llong_accurate=no}
-else
-   AC_CACHE_VAL([hdf5_cv_ldouble_to_llong_accurate],
-        [AC_RUN_IFELSE([AC_LANG_SOURCE([$TEST_SRC])],
-        [hdf5_cv_ldouble_to_llong_accurate=yes], [hdf5_cv_ldouble_to_llong_accurate=no],[])])
-fi
+AC_CACHE_CHECK([if correctly converting long double to (unsigned) long long values],
+               [hdf5_cv_ldouble_to_llong_accurate], [
+  if test ${ac_cv_sizeof_long_double} != 16 -o ${ac_cv_sizeof_long_long} == 0; then
+    hdf5_cv_ldouble_to_llong_accurate=${hdf5_cv_ldouble_to_long_special=no}
+  else
+    # FIXME: assumes certain endian-ness????
+    # based on H5_LDOUBLE_TO_LLONG_ACCURATE_TEST in config/cmake/ConversionTests.c
+    AC_COMPUTE_INT([hdf5_ldouble_to_llong_accurate], [((long long) *((long double *) "\x43\x51\xcc\xf3\x85\xeb\xc8\xa0\xdf\xcc\x2a\x3c\x3d\x85\x56\x20")) == 20041683600089728])
+    if test "x$hdf5_ldouble_to_llong_accurate" = x1; then
+      hdf5_cv_ldouble_to_llong_accurate=yes
+    else
+      hdf5_cv_ldouble_to_llong_accurate=no
+    fi
+  fi])
 
 if test ${hdf5_cv_ldouble_to_llong_accurate} = "yes"; then
   AC_DEFINE([LDOUBLE_TO_LLONG_ACCURATE], [1],
             [Define if your system can convert long double to (unsigned) long long values correctly.])
-  AC_MSG_RESULT([yes])
-else
-  AC_MSG_RESULT([no])
 fi
 
 
